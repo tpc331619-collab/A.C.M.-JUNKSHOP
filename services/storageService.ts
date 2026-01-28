@@ -1,21 +1,21 @@
 import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  query, 
-  orderBy 
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy
 } from 'firebase/firestore';
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut, 
-  onAuthStateChanged, 
-  User 
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  User
 } from 'firebase/auth';
 import { ExpenseRecord, Language } from "../types";
 
@@ -43,9 +43,9 @@ export const storageService = {
    * Subscribes to real-time updates from the 'records' collection in Firestore.
    */
   subscribe: (callback: (records: ExpenseRecord[]) => void) => {
-    // Query records ordered by timestamp descending (newest first)
-    const q = query(collection(db, "records"), orderBy("timestamp", "desc"));
-    
+    // Query records (Client-side sorting is handled in ViewRecordsView)
+    const q = query(collection(db, "records"));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const records = snapshot.docs.map(doc => doc.data() as ExpenseRecord);
       callback(records);
