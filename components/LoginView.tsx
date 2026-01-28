@@ -8,21 +8,31 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({ t, onLogin }) => {
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-3xl shadow-xl border border-gray-100 overflow-hidden p-8 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mb-6 text-indigo-600">
-                    <CreditCard size={40} />
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-indigo-100 flex items-center justify-center p-6 relative overflow-hidden">
+            {/* Decorative background blobs */}
+            <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/2 translate-y-1/2 animate-pulse"></div>
+
+            <div className="bg-white/80 backdrop-blur-lg w-full max-w-md rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col items-center text-center relative z-10 transition-all hover:shadow-2xl hover:scale-[1.01] duration-500">
+                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center mb-8 shadow-lg transform rotate-3 hover:rotate-6 transition-transform">
+                    <CreditCard size={48} className="text-white" />
                 </div>
 
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{t.title}</h1>
-                <h2 className="text-xl font-semibold text-gray-700 mb-2">{t.auth.loginTitle}</h2>
-                <p className="text-gray-500 mb-8">{t.auth.loginSubtitle}</p>
+                <h1 className="text-3xl font-black text-gray-800 tracking-tight mb-2">
+                    {t.title}
+                </h1>
+                <h2 className="text-lg font-medium text-gray-500 mb-8 uppercase tracking-widest">{t.auth.loginTitle}</h2>
+
+                <p className="text-gray-600 mb-8 leading-relaxed">
+                    {t.auth.loginSubtitle}
+                </p>
 
                 <button
                     onClick={onLogin}
-                    className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3.5 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-3"
+                    className="group w-full bg-white border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-gray-700 font-bold py-4 px-6 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-4 relative overflow-hidden"
                 >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <div className="absolute inset-0 bg-indigo-100 w-0 group-hover:w-full transition-all duration-500 ease-out opacity-20"></div>
+                    <svg className="w-6 h-6 z-10" viewBox="0 0 24 24">
                         <path
                             fill="#4285F4"
                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -40,11 +50,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ t, onLogin }) => {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    {t.auth.loginButton}
+                    <span className="z-10">{t.auth.loginButton}</span>
                 </button>
 
-                <div className="mt-8 text-xs text-gray-400">
-                    <p>© {new Date().getFullYear()} A.C.M. JUNKSHOP</p>
+                <div className="mt-12">
+                    <p className="text-xs text-gray-400 font-medium tracking-wide">© {new Date().getFullYear()} A.C.M. JUNKSHOP</p>
                 </div>
             </div>
         </div>

@@ -202,50 +202,54 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
     return (
         <Layout title={t.view.title} onBack={onBack}>
 
-            {/* Filters - Compacted */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4 flex flex-col gap-3">
-                <div className="flex gap-2">
-                    <div className="flex-1">
-                        <label className="text-xs font-medium text-gray-500 mb-1 block">{t.view.filterDateStart}</label>
-                        <input lang={lang} type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
+            {/* Filters - Glass Card */}
+            <div className="bg-white/80 backdrop-blur-sm p-5 rounded-3xl shadow-sm border border-white/60 mb-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full mix-blend-multiply opacity-50 blur-xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                <div className="flex flex-col gap-4 relative z-10">
+                    <div className="flex gap-3">
+                        <div className="flex-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterDateStart}</label>
+                            <input lang={lang} type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 font-medium" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterDateEnd}</label>
+                            <input lang={lang} type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 font-medium" />
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <label className="text-xs font-medium text-gray-500 mb-1 block">{t.view.filterDateEnd}</label>
-                        <input lang={lang} type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
-                    </div>
-                </div>
-                <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1 block">{t.view.filterMaterial}</label>
-                    <div className="relative">
-                        <input type="text" placeholder={t.view.filterMaterial} value={searchMat} onChange={e => setSearchMat(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
-                        <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+                    <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterMaterial}</label>
+                        <div className="relative">
+                            <input type="text" placeholder={t.view.filterMaterial} value={searchMat} onChange={e => setSearchMat(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-gray-700 placeholder-gray-400 font-medium" />
+                            <Search size={18} className="absolute left-3.5 top-2.5 text-gray-400" />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 mb-4">
-                <button onClick={handleExport} className="flex-1 bg-green-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-green-700 shadow-sm active:scale-95 transition-all">
+            <div className="flex gap-3 mb-5">
+                <button onClick={handleExport} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] transition-all">
                     <Download size={18} /> {t.view.exportCSV}
                 </button>
-                <button onClick={handlePrint} className="flex-1 bg-gray-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 shadow-sm active:scale-95 transition-all">
+                <button onClick={handlePrint} className="flex-1 bg-white text-gray-700 border border-gray-200 py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-[0.98] transition-all">
                     <Printer size={18} /> {t.view.printPDF}
                 </button>
             </div>
 
             {/* Table Statistics */}
-            <div className="bg-indigo-50 text-indigo-900 p-3 rounded-xl mb-3 flex justify-between items-center text-sm font-medium border border-indigo-100">
-                <span>{t.view.totalSummary} ({sortedRows.length} items):</span>
-                <span className="text-lg font-bold">${totalAmountFiltered.toLocaleString()}</span>
+            <div className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white p-4 rounded-2xl mb-4 flex justify-between items-center text-sm font-medium shadow-md">
+                <span className="opacity-90">{t.view.totalSummary} ({sortedRows.length}):</span>
+                <span className="text-xl font-bold tracking-tight">${totalAmountFiltered.toLocaleString()}</span>
             </div>
 
             {/* Table - Optimized available space */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col min-h-[300px]">
+            <div className="bg-white/90 backdrop-blur rounded-3xl shadow-sm border border-white/60 overflow-hidden flex-1 flex flex-col min-h-[400px]">
                 <div className="overflow-x-auto" id="print-table-container">
                     <table className="w-full text-xs text-center border-collapse">
-                        <thead className="text-gray-700 uppercase bg-gray-100 border-b">
+                        <thead className="text-gray-400 uppercase bg-gray-50/50 border-b border-gray-100">
                             <tr>
-                                <th className="px-1 py-3 w-8 text-center">{t.view.colIndex}</th>
+                                <th className="px-1 py-4 w-8 text-center font-bold tracking-wider opacity-60">#</th>
                                 {/* Applied very specific widths to fit mobile without scrolling */}
                                 <SortableHeader width="w-20" label={t.view.colDate} sKey="date" currentSort={sortConfig} onSort={handleSort} align="center" />
                                 <SortableHeader width="w-auto" label={t.view.colMaterial} sKey="material" currentSort={sortConfig} onSort={handleSort} align="center" />
@@ -255,26 +259,29 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                                 <SortableHeader width="w-16" label={t.view.colResult} sKey="result" currentSort={sortConfig} onSort={handleSort} align="center" />
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 text-xs text-center">
+                        <tbody className="divide-y divide-gray-50 text-xs text-center">
                             {sortedRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                                        {t.view.noRecords}
+                                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                                        <div className="flex flex-col items-center gap-2 opacity-50">
+                                            <Search size={32} />
+                                            <p>{t.view.noRecords}</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 currentRows.map((row, index) => (
-                                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-1 py-2 text-center text-gray-500">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                        <td className="px-1 py-2 whitespace-nowrap text-gray-600 text-center">
+                                    <tr key={row.id} className="hover:bg-indigo-50/40 transition-colors group">
+                                        <td className="px-1 py-3.5 text-center text-gray-300 font-medium">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                                        <td className="px-1 py-3.5 whitespace-nowrap text-gray-500 text-center font-medium">
                                             {/* Format date according to language setting if possible */}
                                             {row.date}
                                         </td>
-                                        <td className="px-1 py-2 font-medium text-gray-900 break-words leading-tight text-center">{row.material}</td>
-                                        <td className="px-1 py-2 text-center">{row.weight}</td>
-                                        <td className="px-1 py-2 text-center">{row.deduction}%</td>
-                                        <td className="px-1 py-2 text-center">{row.price}</td>
-                                        <td className="px-1 py-2 text-center font-bold">{row.result.toLocaleString()}</td>
+                                        <td className="px-1 py-3.5 font-bold text-gray-700 break-words leading-tight text-center">{row.material}</td>
+                                        <td className="px-1 py-3.5 text-center text-gray-600">{row.weight}</td>
+                                        <td className="px-1 py-3.5 text-center text-gray-400">{row.deduction}</td>
+                                        <td className="px-1 py-3.5 text-center text-gray-600">{row.price}</td>
+                                        <td className="px-1 py-3.5 text-center font-black text-indigo-600">{row.result.toLocaleString()}</td>
                                     </tr>
                                 ))
                             )}
