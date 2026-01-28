@@ -5,6 +5,7 @@ export enum Language {
 }
 
 export enum ViewState {
+  LOGIN = 'LOGIN',
   HOME = 'HOME',
   RECORD = 'RECORD',
   VIEW = 'VIEW',
@@ -44,6 +45,15 @@ export interface Translation {
     record: string;
     view: string;
     settings: string;
+  };
+  auth: {
+    loginTitle: string;
+    loginSubtitle: string;
+    loginButton: string;
+    loggingIn: string;
+    welcome: string;
+    logout: string;
+    loginError: string;
   };
   record: {
     title: string;

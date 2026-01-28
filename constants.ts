@@ -8,6 +8,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       view: '查看',
       settings: '設定',
     },
+    auth: {
+      loginTitle: '歡迎回來',
+      loginSubtitle: '請登入以繼續管理您的帳務',
+      loginButton: '使用 Google 帳號登入',
+      loggingIn: '登入中...',
+      welcome: '歡迎，',
+      logout: '登出',
+      loginError: '登入失敗，請重試',
+    },
     record: {
       title: '新增紀錄',
       companyName: 'A.C.M. JUNKSHOP',
@@ -83,6 +92,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       view: 'View',
       settings: 'Settings',
     },
+    auth: {
+      loginTitle: 'Welcome Back',
+      loginSubtitle: 'Sign in to manage your records',
+      loginButton: 'Sign in with Google',
+      loggingIn: 'Signing in...',
+      welcome: 'Welcome, ',
+      logout: 'Logout',
+      loginError: 'Login failed, please try again',
+    },
     record: {
       title: 'Add Record',
       companyName: 'A.C.M. JUNKSHOP',
@@ -157,6 +175,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       record: 'Maglista',
       view: 'Tingnan',
       settings: 'Setting',
+    },
+    auth: {
+      loginTitle: 'Maligayang Pagbabalik',
+      loginSubtitle: 'Mag-sign in para pamahalaan ang mga record',
+      loginButton: 'Mag-sign in gamit ang Google',
+      loggingIn: 'Nagsa-sign in...',
+      welcome: 'Mabuhay, ',
+      logout: 'Mag-logout',
+      loginError: 'Nabigo ang pag-login, subukang muli',
     },
     record: {
       title: 'Magdagdag',

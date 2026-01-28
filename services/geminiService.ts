@@ -17,6 +17,9 @@ export const suggestCategory = async (description: string): Promise<Category | n
       config: {
         temperature: 0.1,
         maxOutputTokens: 20,
+        // The effective token limit for the response is `maxOutputTokens` minus the `thinkingBudget`.
+        // Since we want to limit output but don't need extensive thinking for classification, we disable thinking (budget 0).
+        thinkingConfig: { thinkingBudget: 0 },
       }
     });
 

@@ -1,5 +1,22 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  orderBy 
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  onAuthStateChanged, 
+  User 
+} from 'firebase/auth';
 import { ExpenseRecord, Language } from "../types";
 
 // Firebase Configuration
@@ -16,6 +33,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 const STORAGE_KEY_LANG = 'moneyflow_language';
 
@@ -39,8 +58,6 @@ export const storageService = {
 
   /**
    * Adds or updates a record in Firestore.
-   * Uses setDoc with a specific ID to ensure idempotency if needed, 
-   * effectively working as an 'upsert'.
    */
   addRecord: async (record: ExpenseRecord): Promise<void> => {
     try {
@@ -75,5 +92,39 @@ export const storageService = {
    */
   setLanguage: (lang: Language): void => {
     localStorage.setItem(STORAGE_KEY_LANG, lang);
+  },
+
+  // --- AUTH METHODS ---
+
+  /**
+   * Initiates Google Login via Popup.
+   */
+  loginWithGoogle: async (): Promise<User> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      return result.user;
+    } catch (error) {
+      console.error("Login failed", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Signs out the current user.
+   */
+  logout: async (): Promise<void> => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Subscribes to authentication state changes.
+   */
+  onAuthStateChanged: (callback: (user: User | null) => void) => {
+    return onAuthStateChanged(auth, callback);
   }
 };
