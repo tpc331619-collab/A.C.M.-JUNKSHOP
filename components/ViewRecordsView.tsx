@@ -209,19 +209,19 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                 <div className="flex flex-col gap-4 relative z-10">
                     <div className="flex gap-3">
                         <div className="flex-1">
-                            <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterDateStart}</label>
-                            <input lang={lang} type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 font-medium" />
+                            <label className="text-[10px] uppercase font-black text-indigo-900 mb-1.5 block tracking-widest bg-white/50 w-fit px-1 rounded">{t.view.filterDateStart}</label>
+                            <input lang={lang} type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-900 font-bold shadow-sm appearance-none" />
                         </div>
                         <div className="flex-1">
-                            <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterDateEnd}</label>
-                            <input lang={lang} type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-700 font-medium" />
+                            <label className="text-[10px] uppercase font-black text-indigo-900 mb-1.5 block tracking-widest bg-white/50 w-fit px-1 rounded">{t.view.filterDateEnd}</label>
+                            <input lang={lang} type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)} className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all text-gray-900 font-bold shadow-sm appearance-none" />
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-400 mb-1.5 block tracking-widest">{t.view.filterMaterial}</label>
+                        <label className="text-[10px] uppercase font-black text-indigo-900 mb-1.5 block tracking-widest bg-white/50 w-fit px-1 rounded">{t.view.filterMaterial}</label>
                         <div className="relative">
-                            <input type="text" placeholder={t.view.filterMaterial} value={searchMat} onChange={e => setSearchMat(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-gray-700 placeholder-gray-400 font-medium" />
-                            <Search size={18} className="absolute left-3.5 top-2.5 text-gray-400" />
+                            <input type="text" placeholder={t.view.filterMaterial} value={searchMat} onChange={e => setSearchMat(e.target.value)} className="w-full bg-white border border-indigo-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 transition-all text-gray-900 placeholder-gray-500 font-bold shadow-sm" />
+                            <Search size={18} className="absolute left-3.5 top-2.5 text-gray-500" />
                         </div>
                     </div>
                 </div>

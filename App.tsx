@@ -24,29 +24,37 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   // --- INITIALIZATION ---
+  // --- INITIALIZATION ---
+
+  // 1. Load Language & Subscribe to Auth State (Run once)
   useEffect(() => {
-    // Load Language Settings
+    // Load Language
     const savedLang = storageService.getLanguage();
     setLang(savedLang);
     setT(TRANSLATIONS[savedLang]);
 
-    // Subscribe to Auth State
+    // Subscribe to Auth
     const unsubscribeAuth = storageService.onAuthStateChanged((u) => {
       setUser(u);
       setAuthLoading(false);
     });
 
-    // Subscribe to Firebase Data
+    return () => unsubscribeAuth();
+  }, []);
+
+  // 2. Subscribe to Firebase Data (Only when user is authenticated)
+  useEffect(() => {
+    if (!user) {
+      setRecords([]);
+      return;
+    }
+
     const unsubscribeData = storageService.subscribe((updatedRecords) => {
       setRecords(updatedRecords);
     });
 
-    // Cleanup subscription on unmount
-    return () => {
-      unsubscribeAuth();
-      unsubscribeData();
-    };
-  }, []);
+    return () => unsubscribeData();
+  }, [user]);
 
   // Update translation when language changes
   useEffect(() => {

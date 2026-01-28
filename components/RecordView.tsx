@@ -48,7 +48,8 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
     }, [rows]);
 
     const handleClear = () => {
-        if (rows.some(r => r.material.trim() !== '' || r.weight !== '' || r.deduction !== '' || r.price !== '') && !window.confirm(t.record.clear + '?')) {
+        // Always confirm before clearing
+        if (!window.confirm(t.record.clear + '?')) {
             return;
         }
         setRows(Array.from({ length: 5 }, () => ({ material: '', weight: '', deduction: '', price: '' })));
@@ -102,7 +103,8 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
         try {
             await onSave(newRecord);
             setLastSaved(currentDataString);
-            alert(t.record.uploadSuccess);
+            // Explicit success alert as requested
+            setTimeout(() => alert(t.record.uploadSuccess), 100);
         } catch (error: any) {
             console.error(error);
             alert(`Error uploading: ${error.message || error.code || 'Unknown error'}. Please check your Firebase Config and Rules.`);
