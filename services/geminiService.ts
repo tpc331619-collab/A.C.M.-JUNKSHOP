@@ -2,13 +2,25 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Category, ExpenseRecord, Language } from "../types";
 
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+try {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (apiKey) {
+    ai = new GoogleGenAI({ apiKey });
+  } else {
+    console.warn("VITE_GEMINI_API_KEY is missing. AI features will be disabled.");
+  }
+} catch (error) {
+  console.error("Failed to initialize GoogleGenAI:", error);
+}
 
 /**
  * Suggests a category based on the description using Gemini Flash (fast).
  */
 export const suggestCategory = async (description: string): Promise<Category | null> => {
   if (!description || description.length < 2) return null;
+
+  if (!ai) return null;
 
   try {
     const response = await ai.models.generateContent({
@@ -25,7 +37,7 @@ export const suggestCategory = async (description: string): Promise<Category | n
 
     const text = response.text?.trim().toLowerCase();
     const categories = Object.values(Category);
-    
+
     // Find matching category
     const match = categories.find(c => text?.includes(c));
     return match || Category.OTHER;
@@ -59,6 +71,8 @@ export const analyzeSpending = async (records: ExpenseRecord[], lang: Language):
     4. Respond strictly in this language code: ${lang} (e.g., if zh-TW, use Traditional Chinese).
     5. Keep it under 100 words.
   `;
+
+  if (!ai) return "AI services currently unavailable.";
 
   try {
     const response = await ai.models.generateContent({

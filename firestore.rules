@@ -3,15 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 對於 'records' 集合的規則
+    // Records collection rules
     match /records/{recordId} {
-      // 警告：此規則允許任何人讀取和寫入您的資料。
-      // 因為目前的應用程式尚未實作 Firebase Authentication (登入功能)，
-      // 這是讓 App 能運作的唯一方式。
-      // 在正式上線或加入登入功能後，請務必修改此處為: if request.auth != null;
-      allow read, write: if true;
+      // Only allow access if the user is authenticated (logged in)
+      allow read, write: if request.auth != null;
     }
 
-    // 如果未來有其他集合，可以在此擴充
+    // Allow future collections to be added here
   }
 }

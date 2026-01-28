@@ -35,6 +35,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: '請輸入驗證碼以儲存：',
       invalidCode: '驗證碼錯誤',
       uploadSuccess: '上傳成功',
+      clear: 'Delete',
     },
     invoice: {
       proofCopy: '收據',
@@ -119,6 +120,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: 'Enter verification code to save:',
       invalidCode: 'Invalid verification code',
       uploadSuccess: 'Upload successful',
+      clear: 'Delete',
     },
     invoice: {
       proofCopy: 'Receipt',
@@ -203,6 +205,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: 'Ipasok ang verification code:',
       invalidCode: 'Maling code',
       uploadSuccess: 'Matagumpay na na-upload',
+      clear: 'Delete',
     },
     invoice: {
       proofCopy: 'Resibo',

@@ -73,6 +73,7 @@ export interface Translation {
     enterCode: string;
     invalidCode: string;
     uploadSuccess: string;
+    clear: string;
   };
   invoice: {
     proofCopy: string;
