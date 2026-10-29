@@ -74,6 +74,7 @@ export interface Translation {
     invalidCode: string;
     uploadSuccess: string;
     clear: string;
+    emptyDataError: string;
   };
   invoice: {
     proofCopy: string;
@@ -109,6 +110,15 @@ export interface Translation {
     noRecords: string;
     delete: string;
     totalSummary: string;
+    byYear: string;
+    byMonth: string;
+    byWeek: string;
+    txTotal: string;
+    viewInvoice: string;
+    editTitle: string;
+    editSave: string;
+    deleteItem: string;
+    deleteConfirm: string;
   };
   settings: {
     title: string;

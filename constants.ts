@@ -4,7 +4,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
   [Language.ZH_TW]: {
     title: 'A.C.M. JUNKSHOP',
     home: {
-      record: '記帳',
+      record: '新增',
       view: '查看',
       settings: '設定',
     },
@@ -35,7 +35,8 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: '請輸入驗證碼以儲存：',
       invalidCode: '驗證碼錯誤',
       uploadSuccess: '上傳成功',
-      clear: 'Delete',
+      clear: 'Clear all',
+      emptyDataError: '請填寫資料後再儲存',
     },
     invoice: {
       proofCopy: '收據',
@@ -71,6 +72,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       noRecords: '無符合資料',
       delete: '刪除',
       totalSummary: '篩選總計',
+      byYear: '年',
+      byMonth: '月',
+      byWeek: '週',
+      txTotal: '查看發票',
+      viewInvoice: '查看發票',
+      editTitle: '編輯品項',
+      editSave: '儲存修改',
+      deleteItem: '刪除品項',
+      deleteConfirm: '確定要刪除此品項嗎？',
     },
     settings: {
       title: '設定',
@@ -89,7 +99,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
   [Language.EN]: {
     title: 'A.C.M. JUNKSHOP',
     home: {
-      record: 'Record',
+      record: '+add',
       view: 'View',
       settings: 'Settings',
     },
@@ -120,7 +130,8 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: 'Enter verification code to save:',
       invalidCode: 'Invalid verification code',
       uploadSuccess: 'Upload successful',
-      clear: 'Delete',
+      clear: 'Clear all',
+      emptyDataError: 'Please enter data before saving',
     },
     invoice: {
       proofCopy: 'Receipt',
@@ -156,6 +167,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       noRecords: 'No records found',
       delete: 'Delete',
       totalSummary: 'Filtered Total',
+      byYear: 'Year',
+      byMonth: 'Month',
+      byWeek: 'Week',
+      txTotal: 'View the invoice',
+      viewInvoice: 'View the invoice',
+      editTitle: 'Edit Item',
+      editSave: 'Save Changes',
+      deleteItem: 'Delete Item',
+      deleteConfirm: 'Are you sure you want to delete this item?',
     },
     settings: {
       title: 'Settings',
@@ -174,7 +194,7 @@ export const TRANSLATIONS: Record<Language, Translation> = {
   [Language.FIL]: {
     title: 'A.C.M. JUNKSHOP',
     home: {
-      record: 'Maglista',
+      record: '+add',
       view: 'Tingnan',
       settings: 'Setting',
     },
@@ -205,7 +225,8 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       enterCode: 'Ipasok ang verification code:',
       invalidCode: 'Maling code',
       uploadSuccess: 'Matagumpay na na-upload',
-      clear: 'Delete',
+      clear: 'Clear all',
+      emptyDataError: 'Mangyaring maglagay ng data bago mag-save',
     },
     invoice: {
       proofCopy: 'Resibo',
@@ -241,6 +262,15 @@ export const TRANSLATIONS: Record<Language, Translation> = {
       noRecords: 'Walang nakitang rekord',
       delete: 'Tanggalin',
       totalSummary: 'Kabuuan',
+      byYear: 'Taon',
+      byMonth: 'Buwan',
+      byWeek: 'Linggo',
+      txTotal: 'Tingnan ang resibo',
+      viewInvoice: 'Tingnan ang resibo',
+      editTitle: 'I-edit ang Bagay',
+      editSave: 'I-save ang Pagbabago',
+      deleteItem: 'Tanggalin ang Bagay',
+      deleteConfirm: 'Sigurado ka bang nais mong tanggalin ang bagay na ito?',
     },
     settings: {
       title: 'Mga Setting',

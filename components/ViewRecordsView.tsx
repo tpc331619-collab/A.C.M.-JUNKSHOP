@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Download, Printer, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Download, Printer, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, ChevronDown, FileText, Trash2, Save, X, BarChart2 } from 'lucide-react';
 import { Layout } from './Layout';
+import { InvoiceModal } from './InvoiceModal';
 import { Language, ExpenseRecord } from '../types';
 import { storageService } from '../services/storageService';
+import { calculateRowResult } from '../utils/calculations';
 
 interface FlattenedRow {
     id: string; // Unique ID for key (timestamp-index)
@@ -14,6 +16,9 @@ interface FlattenedRow {
     price: number;
     result: number;
     timestamp: number;
+    itemIndex: number;
+    totalItems: number;
+    recordAmount: number;
 }
 
 const SortableHeader = ({ label, sKey, currentSort, onSort, align = 'left', width }: {
@@ -44,6 +49,18 @@ const SortableHeader = ({ label, sKey, currentSort, onSort, align = 'left', widt
     );
 };
 
+const formatDateTwoLines = (dateStr: string) => {
+    if (!dateStr) return { year: '', date: '' };
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return {
+            year: parts[0],
+            date: `${parts[1]}/${parts[2]}`
+        };
+    }
+    return { year: '', date: dateStr };
+};
+
 interface ViewRecordsViewProps {
     t: any;
     lang: Language;
@@ -56,6 +73,26 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
     const [dateEnd, setDateEnd] = useState('');
     const [searchMat, setSearchMat] = useState('');
 
+    const [selectedInvoice, setSelectedInvoice] = useState<{
+        rows: { material: string; weight: string; deduction: string; price: string }[];
+        date: string;
+        total: number;
+        recordId: string;
+    } | null>(null);
+
+    const [editingItem, setEditingItem] = useState<{
+        recordId: string;
+        itemIndex: number;
+        material: string;
+        weight: string;
+        deduction: string;
+        price: string;
+        txNum: number;
+        date: string;
+        totalItems: number;
+    } | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
+
     const [sortConfig, setSortConfig] = useState<{ key: keyof FlattenedRow, direction: 'asc' | 'desc' }>({
         key: 'timestamp',
         direction: 'desc'
@@ -65,12 +102,30 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 12;
 
+    // Breakdown state
+    const [showBreakdown, setShowBreakdown] = useState(false);
+    const [breakdownMode, setBreakdownMode] = useState<'year' | 'month' | 'week'>('month');
+
     const printRef = useRef<HTMLDivElement>(null);
 
-    // Flatten logic: Convert saved records (possibly containing multiple items) into a flat table list
+    // Map each unique record to a transaction sequence number
+    const recordTxMap = useMemo(() => {
+        const map = new Map<string, number>();
+        let count = 1;
+        const sortedRecords = [...records].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        sortedRecords.forEach(r => {
+            if (!map.has(r.id)) {
+                map.set(r.id, count++);
+            }
+        });
+        return map;
+    }, [records]);
+
+    // Flatten logic: Convert saved records into rows with transaction metadata
     const allRows: FlattenedRow[] = useMemo(() => {
         return records.flatMap(record => {
             if (record.details && record.details.length > 0) {
+                const totalItems = record.details.length;
                 return record.details.map((detail, idx) => ({
                     id: `${record.id}-${idx}`,
                     recordId: record.id,
@@ -80,7 +135,10 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                     deduction: detail.deduction,
                     price: detail.price,
                     result: detail.result,
-                    timestamp: record.timestamp
+                    timestamp: record.timestamp,
+                    itemIndex: idx,
+                    totalItems: totalItems,
+                    recordAmount: record.amount
                 }));
             } else {
                 // Handle legacy records without details (show as one row)
@@ -93,7 +151,10 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                     deduction: 0,
                     price: 0,
                     result: record.amount,
-                    timestamp: record.timestamp
+                    timestamp: record.timestamp,
+                    itemIndex: 0,
+                    totalItems: 1,
+                    recordAmount: record.amount
                 }];
             }
         });
@@ -137,6 +198,50 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
     // Calculate total amount separately for display if needed, but 'totalFiltered' usually refers to count or sum
     const totalAmountFiltered = sortedRows.reduce((sum, row) => sum + row.result, 0);
 
+    // Breakdown computations
+    const breakdownData = useMemo(() => {
+        const getWeekKey = (dateStr: string) => {
+            if (!dateStr) return 'Unknown';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            // ISO week: find Monday of the week
+            const day = d.getDay(); // 0=Sun, 1=Mon...
+            const diffToMon = (day === 0 ? -6 : 1 - day);
+            const mon = new Date(d);
+            mon.setDate(d.getDate() + diffToMon);
+            const sun = new Date(mon);
+            sun.setDate(mon.getDate() + 6);
+            const fmt = (dt: Date) => `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')}`;
+            return `${mon.getFullYear()} W${fmt(mon)}-${fmt(sun)}`;
+        };
+
+        const yearMap = new Map<string, number>();
+        const monthMap = new Map<string, number>();
+        const weekMap = new Map<string, number>();
+
+        sortedRows.forEach(row => {
+            if (!row.date) return;
+            const parts = row.date.split('-');
+            if (parts.length < 2) return;
+            const y = parts[0];
+            const ym = `${parts[0]}-${parts[1]}`;
+            const wk = getWeekKey(row.date);
+
+            yearMap.set(y, (yearMap.get(y) || 0) + row.result);
+            monthMap.set(ym, (monthMap.get(ym) || 0) + row.result);
+            weekMap.set(wk, (weekMap.get(wk) || 0) + row.result);
+        });
+
+        const sortDesc = (m: Map<string, number>) =>
+            [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+
+        return {
+            year: sortDesc(yearMap),
+            month: sortDesc(monthMap),
+            week: sortDesc(weekMap),
+        };
+    }, [sortedRows]);
+
     // Handlers
     const handleSort = (key: keyof FlattenedRow) => {
         setSortConfig(current => ({
@@ -160,6 +265,147 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                 console.error(error);
                 alert("Error deleting record");
             }
+        }
+    };
+
+    const handleShowInvoice = (recordId: string) => {
+        const rec = records.find(r => r.id === recordId);
+        if (!rec) return;
+
+        let invoiceRows: { material: string; weight: string; deduction: string; price: string }[] = [];
+        if (rec.details && rec.details.length > 0) {
+            invoiceRows = rec.details.map(d => ({
+                material: d.material,
+                weight: d.weight.toString(),
+                deduction: d.deduction.toString(),
+                price: d.price.toString()
+            }));
+        } else {
+            invoiceRows = [{
+                material: rec.description || 'Item',
+                weight: '1',
+                deduction: '0',
+                price: rec.amount.toString()
+            }];
+        }
+
+        setSelectedInvoice({
+            rows: invoiceRows,
+            date: rec.date,
+            total: rec.amount,
+            recordId: rec.id
+        });
+    };
+
+    const handleOpenEdit = (row: FlattenedRow, txNum: number) => {
+        setEditingItem({
+            recordId: row.recordId,
+            itemIndex: row.itemIndex,
+            material: row.material,
+            weight: row.weight.toString(),
+            deduction: row.deduction.toString(),
+            price: row.price.toString(),
+            txNum,
+            date: row.date,
+            totalItems: row.totalItems
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingItem) return;
+        const { recordId, itemIndex, material, weight, deduction, price } = editingItem;
+
+        const w = parseFloat(weight) || 0;
+        const d = parseFloat(deduction) || 0;
+        const p = parseFloat(price) || 0;
+
+        if (material.trim() === '' && w === 0 && p === 0) {
+            alert(t.record?.emptyDataError || "Please enter valid data");
+            return;
+        }
+
+        const rec = records.find(r => r.id === recordId);
+        if (!rec) return;
+
+        setIsUpdating(true);
+        try {
+            const updatedDetails = rec.details ? [...rec.details] : [];
+            const newResult = calculateRowResult({ weight: w, deduction: d, price: p });
+
+            if (updatedDetails.length > 0 && itemIndex < updatedDetails.length) {
+                updatedDetails[itemIndex] = {
+                    material: material.trim(),
+                    weight: w,
+                    deduction: d,
+                    price: p,
+                    result: newResult
+                };
+            } else {
+                updatedDetails.push({
+                    material: material.trim(),
+                    weight: w,
+                    deduction: d,
+                    price: p,
+                    result: newResult
+                });
+            }
+
+            const newAmount = updatedDetails.reduce((sum, item) => sum + item.result, 0);
+            const summaryItems = updatedDetails.map(item => `${item.material || 'Item'}: ${item.weight}kg @ ${item.price}`);
+            const newDescription = `${t.record.companyName} - ${updatedDetails.length} items. ${summaryItems.join(', ')}`;
+
+            const updatedRecord: ExpenseRecord = {
+                ...rec,
+                amount: newAmount,
+                description: newDescription,
+                details: updatedDetails
+            };
+
+            await storageService.addRecord(updatedRecord);
+            setEditingItem(null);
+        } catch (err: any) {
+            console.error(err);
+            alert(`Error updating: ${err.message || 'Unknown error'}`);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleDeleteItem = async () => {
+        if (!editingItem) return;
+        if (!window.confirm(t.view.deleteConfirm || "確定要刪除此品項嗎？")) return;
+
+        const { recordId, itemIndex } = editingItem;
+        const rec = records.find(r => r.id === recordId);
+        if (!rec) return;
+
+        setIsUpdating(true);
+        try {
+            if (!rec.details || rec.details.length <= 1) {
+                // If only 1 item, delete the entire record
+                await storageService.deleteRecord(recordId);
+            } else {
+                // Remove item and recalculate total
+                const updatedDetails = rec.details.filter((_, idx) => idx !== itemIndex);
+                const newAmount = updatedDetails.reduce((sum, item) => sum + item.result, 0);
+                const summaryItems = updatedDetails.map(item => `${item.material || 'Item'}: ${item.weight}kg @ ${item.price}`);
+                const newDescription = `${t.record.companyName} - ${updatedDetails.length} items. ${summaryItems.join(', ')}`;
+
+                const updatedRecord: ExpenseRecord = {
+                    ...rec,
+                    amount: newAmount,
+                    description: newDescription,
+                    details: updatedDetails
+                };
+
+                await storageService.addRecord(updatedRecord);
+            }
+            setEditingItem(null);
+        } catch (err: any) {
+            console.error(err);
+            alert(`Error deleting: ${err.message || 'Unknown error'}`);
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -227,20 +473,55 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 mb-5">
-                <button onClick={handleExport} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] transition-all">
-                    <Download size={18} /> {t.view.exportCSV}
+            {/* Table Statistics — expandable */}
+            <div className="mb-4">
+                <button
+                    onClick={() => setShowBreakdown(v => !v)}
+                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 text-white p-4 rounded-2xl flex justify-between items-center text-sm font-medium shadow-md hover:from-indigo-600 hover:to-blue-700 active:scale-[0.99] transition-all"
+                >
+                    <span className="opacity-90">{t.view.totalSummary} ({sortedRows.length}):</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold tracking-tight">${totalAmountFiltered.toLocaleString()}</span>
+                        <ChevronDown
+                            size={18}
+                            className={`opacity-70 transition-transform duration-300 ${showBreakdown ? 'rotate-180' : ''}`}
+                        />
+                    </div>
                 </button>
-                <button onClick={handlePrint} className="flex-1 bg-white text-gray-700 border border-gray-200 py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-100 active:scale-[0.98] transition-all">
-                    <Printer size={18} /> {t.view.printPDF}
-                </button>
-            </div>
 
-            {/* Table Statistics */}
-            <div className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white p-4 rounded-2xl mb-4 flex justify-between items-center text-sm font-medium shadow-md">
-                <span className="opacity-90">{t.view.totalSummary} ({sortedRows.length}):</span>
-                <span className="text-xl font-bold tracking-tight">${totalAmountFiltered.toLocaleString()}</span>
+                {/* Breakdown Panel */}
+                {showBreakdown && (
+                    <div className="mt-2 bg-white/90 backdrop-blur rounded-2xl border border-indigo-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                        {/* Mode tabs */}
+                        <div className="flex border-b border-indigo-50">
+                            {(['year', 'month', 'week'] as const).map(mode => (
+                                <button
+                                    key={mode}
+                                    onClick={() => setBreakdownMode(mode)}
+                                    className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${breakdownMode === mode
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'text-indigo-400 hover:bg-indigo-50'
+                                        }`}
+                                >
+                                    {mode === 'year' ? (t.view.byYear || 'Year') : mode === 'month' ? (t.view.byMonth || 'Month') : (t.view.byWeek || 'Week')}
+                                </button>
+                            ))}
+                        </div>
+                        {/* Rows */}
+                        <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
+                            {breakdownData[breakdownMode].length === 0 ? (
+                                <p className="text-center text-gray-400 text-xs py-6">{t.view.noRecords}</p>
+                            ) : (
+                                breakdownData[breakdownMode].map(([key, total]) => (
+                                    <div key={key} className="flex justify-between items-center px-4 py-2.5 hover:bg-indigo-50/40 transition-colors">
+                                        <span className="text-xs font-semibold text-gray-600">{key}</span>
+                                        <span className="text-sm font-black text-indigo-700">${total.toLocaleString()}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Table - Optimized available space */}
@@ -249,9 +530,9 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                     <table className="w-full text-xs text-center border-collapse">
                         <thead className="text-gray-400 uppercase bg-gray-50/50 border-b border-gray-100">
                             <tr>
-                                <th className="px-1 py-4 w-8 text-center font-bold tracking-wider opacity-60">#</th>
+                                <th className="px-1 py-3.5 w-12 text-center font-bold tracking-wider opacity-60">#</th>
                                 {/* Applied very specific widths to fit mobile without scrolling */}
-                                <SortableHeader width="w-20" label={t.view.colDate} sKey="date" currentSort={sortConfig} onSort={handleSort} align="center" />
+                                <SortableHeader width="w-16" label={t.view.colDate} sKey="date" currentSort={sortConfig} onSort={handleSort} align="center" />
                                 <SortableHeader width="w-auto" label={t.view.colMaterial} sKey="material" currentSort={sortConfig} onSort={handleSort} align="center" />
                                 <SortableHeader width="w-12" label={t.view.colWeight} sKey="weight" currentSort={sortConfig} onSort={handleSort} align="center" />
                                 <SortableHeader width="w-10" label={t.view.colDeduction} sKey="deduction" currentSort={sortConfig} onSort={handleSort} align="center" />
@@ -270,20 +551,105 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                                     </td>
                                 </tr>
                             ) : (
-                                currentRows.map((row, index) => (
-                                    <tr key={row.id} className="hover:bg-indigo-50/40 transition-colors group">
-                                        <td className="px-1 py-3.5 text-center text-gray-300 font-medium">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                                        <td className="px-1 py-3.5 whitespace-nowrap text-gray-500 text-center font-medium">
-                                            {/* Format date according to language setting if possible */}
-                                            {row.date}
-                                        </td>
-                                        <td className="px-1 py-3.5 font-bold text-gray-700 break-words leading-tight text-center">{row.material}</td>
-                                        <td className="px-1 py-3.5 text-center text-gray-600">{row.weight}</td>
-                                        <td className="px-1 py-3.5 text-center text-gray-400">{row.deduction}</td>
-                                        <td className="px-1 py-3.5 text-center text-gray-600">{row.price}</td>
-                                        <td className="px-1 py-3.5 text-center font-black text-indigo-600">{row.result.toLocaleString()}</td>
-                                    </tr>
-                                ))
+                                currentRows.map((row, index) => {
+                                    const isSameAsNext = index < currentRows.length - 1 && currentRows[index + 1].recordId === row.recordId;
+                                    const isSameAsPrev = index > 0 && currentRows[index - 1].recordId === row.recordId;
+                                    const isMulti = row.totalItems > 1;
+                                    const txNum = recordTxMap.get(row.recordId) || ((currentPage - 1) * itemsPerPage + index + 1);
+
+                                    return (
+                                        <React.Fragment key={row.id}>
+                                            <tr
+                                                onClick={() => handleOpenEdit(row, txNum)}
+                                                className={`transition-colors cursor-pointer group ${isMulti ? 'bg-indigo-50/20 hover:bg-indigo-50/50' : 'hover:bg-indigo-50/40'} ${isSameAsNext ? 'border-b border-indigo-100/40' : ''}`}
+                                                title={t.view.editItemTip || "Click to edit or delete"}
+                                            >
+                                                {/* Clean index: 2-1 for multi-item, 1 for single item */}
+                                                <td className="px-1 py-2 text-center select-none">
+                                                    {isMulti ? (
+                                                        <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[11px] leading-tight">
+                                                            {txNum}-{row.itemIndex + 1}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400 font-semibold text-xs">{txNum}</span>
+                                                    )}
+                                                </td>
+                                                {/* 2-line date: year on top, MM/DD below for minimal width + full clarity */}
+                                                <td className="px-1 py-1.5 text-center select-none" title={row.date}>
+                                                    {(() => {
+                                                        const { year, date } = formatDateTwoLines(row.date);
+                                                        return (
+                                                            <div className="flex flex-col items-center justify-center leading-tight">
+                                                                {year && (
+                                                                    <span className="text-[10px] text-gray-400 font-semibold tracking-tight leading-none">
+                                                                        {year}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-xs font-bold text-gray-700 leading-tight">
+                                                                    {date}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </td>
+                                                <td className="px-1 py-2 font-bold text-gray-700 break-words leading-tight text-center">{row.material}</td>
+                                                <td className="px-1 py-2 text-center text-gray-600">{row.weight}</td>
+                                                <td className="px-1 py-2 text-center text-gray-400">{row.deduction}</td>
+                                                <td className="px-1 py-2 text-center text-gray-600">{row.price}</td>
+                                                {/* If single-item tx, result is the total (has invoice icon). If multi-item, plain number */}
+                                                <td className="px-1 py-2 text-center font-black">
+                                                    {isMulti ? (
+                                                        <span className="text-gray-800">{row.result.toLocaleString()}</span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleShowInvoice(row.recordId);
+                                                            }}
+                                                            className="inline-flex items-center justify-center gap-1 font-black text-indigo-600 hover:text-indigo-800 hover:underline px-1 py-0.5 rounded transition-all active:scale-95"
+                                                            title={t.view.viewInvoice || "View Invoice"}
+                                                        >
+                                                            <span>{row.result.toLocaleString()}</span>
+                                                            <FileText size={11} className="text-indigo-500 shrink-0" />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            {/* Show transaction subtotal bar ONLY when ending a multi-item transaction */}
+                                            {isMulti && !isSameAsNext && (
+                                                <tr
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleShowInvoice(row.recordId);
+                                                    }}
+                                                    className="bg-indigo-50/80 hover:bg-indigo-100/90 border-b-2 border-indigo-200 text-indigo-900 font-bold text-xs cursor-pointer transition-colors group"
+                                                    title={t.view.viewInvoice || "View the invoice"}
+                                                >
+                                                    <td colSpan={6} className="py-2 px-3 text-right text-[11px] text-indigo-700 font-bold">
+                                                        <span className="inline-flex items-center gap-1.5 group-hover:underline">
+                                                            🧾 {t.view.txTotal || 'View the invoice'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-2 px-1 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleShowInvoice(row.recordId);
+                                                            }}
+                                                            className="inline-flex items-center justify-center gap-1 font-black text-indigo-700 hover:text-indigo-950 text-xs active:scale-95 transition-all bg-white border border-indigo-200 px-2 py-1 rounded-lg shadow-2xs hover:bg-indigo-50"
+                                                            title={t.view.viewInvoice || "View the invoice"}
+                                                        >
+                                                            <span>${row.recordAmount.toLocaleString()}</span>
+                                                            <FileText size={11} className="text-indigo-600 shrink-0" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
@@ -312,17 +678,23 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
                         </tr>
                     </thead>
                     <tbody>
-                        {sortedRows.map((row, index) => (
-                            <tr key={row.id} className="border-b border-gray-200">
-                                <td className="p-2 border border-gray-300">{index + 1}</td>
-                                <td className="p-2 border border-gray-300">{row.date}</td>
-                                <td className="p-2 border border-gray-300">{row.material}</td>
-                                <td className="p-2 border border-gray-300">{row.weight}</td>
-                                <td className="p-2 border border-gray-300">{row.deduction}%</td>
-                                <td className="p-2 border border-gray-300">{row.price}</td>
-                                <td className="p-2 border border-gray-300 font-bold">{row.result.toLocaleString()}</td>
-                            </tr>
-                        ))}
+                        {sortedRows.map((row, index) => {
+                            const txNum = recordTxMap.get(row.recordId) || index + 1;
+                            const isMulti = row.totalItems > 1;
+                            return (
+                                <tr key={row.id} className="border-b border-gray-200">
+                                    <td className="p-2 border border-gray-300">
+                                        {isMulti ? `${txNum}-${row.itemIndex + 1}` : txNum}
+                                    </td>
+                                    <td className="p-2 border border-gray-300">{row.date}</td>
+                                    <td className="p-2 border border-gray-300">{row.material}</td>
+                                    <td className="p-2 border border-gray-300">{row.weight}</td>
+                                    <td className="p-2 border border-gray-300">{row.deduction}%</td>
+                                    <td className="p-2 border border-gray-300">{row.price}</td>
+                                    <td className="p-2 border border-gray-300 font-bold">{row.result.toLocaleString()}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -377,6 +749,141 @@ export const ViewRecordsView: React.FC<ViewRecordsViewProps> = ({ t, lang, recor
           .no-print { display: none !important; }
         }
       `}</style>
+
+            {selectedInvoice && (
+                <InvoiceModal
+                    t={t}
+                    rows={selectedInvoice.rows}
+                    date={selectedInvoice.date}
+                    total={selectedInvoice.total}
+                    recordId={selectedInvoice.recordId}
+                    onClose={() => setSelectedInvoice(null)}
+                />
+            )}
+
+            {/* Edit / Delete Item Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-6 w-[92vw] max-w-sm border border-indigo-50 relative flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-lg font-bold text-indigo-950">
+                                    {t.view.editTitle || 'Edit Item'}
+                                </h3>
+                                <span className="bg-indigo-50 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+                                    #{editingItem.txNum}{editingItem.totalItems > 1 ? `-${editingItem.itemIndex + 1}` : ''}
+                                </span>
+                                {editingItem.date && (
+                                    <span className="text-xs text-gray-400 font-medium">
+                                        ({editingItem.date})
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setEditingItem(null)}
+                                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <div>
+                                <label className="text-xs font-bold text-gray-600 mb-1 block">
+                                    {t.view.colMaterial || 'Material'}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editingItem.material}
+                                    onChange={e => setEditingItem({ ...editingItem, material: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-semibold outline-none focus:border-indigo-600 focus:bg-white transition-all text-gray-800"
+                                    placeholder="..."
+                                    maxLength={20}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-600 mb-1 block text-center">
+                                        {t.view.colWeight || 'Kilo'}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editingItem.weight}
+                                        onChange={e => setEditingItem({ ...editingItem, weight: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm font-semibold outline-none focus:border-indigo-600 focus:bg-white text-center text-gray-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-600 mb-1 block text-center">
+                                        {t.view.colDeduction || '%'}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editingItem.deduction}
+                                        onChange={e => setEditingItem({ ...editingItem, deduction: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm font-semibold outline-none focus:border-indigo-600 focus:bg-white text-center text-gray-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-600 mb-1 block text-center">
+                                        {t.view.colPrice || 'Price/KG'}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={editingItem.price}
+                                        onChange={e => setEditingItem({ ...editingItem, price: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm font-semibold outline-none focus:border-indigo-600 focus:bg-white text-center text-gray-800"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Live Subtotal */}
+                            <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3 flex justify-between items-center">
+                                <span className="text-xs font-bold text-indigo-900">
+                                    {t.view.colResult || 'Result'}:
+                                </span>
+                                <span className="text-xl font-black text-indigo-600">
+                                    ${calculateRowResult({
+                                        weight: editingItem.weight,
+                                        deduction: editingItem.deduction,
+                                        price: editingItem.price
+                                    }).toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={handleDeleteItem}
+                                disabled={isUpdating}
+                                className="w-full bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 py-3 px-2 rounded-2xl text-sm font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all min-w-0 shadow-xs"
+                            >
+                                <Trash2 size={16} className="shrink-0" />
+                                <span className="truncate">{t.view.deleteItem || 'Delete'}</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveEdit}
+                                disabled={isUpdating}
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-2 rounded-2xl text-sm font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all min-w-0"
+                            >
+                                {isUpdating ? (
+                                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent shrink-0" />
+                                ) : (
+                                    <Save size={16} className="shrink-0" />
+                                )}
+                                <span className="truncate">{t.view.editSave || 'Save Changes'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout >
     );
 };

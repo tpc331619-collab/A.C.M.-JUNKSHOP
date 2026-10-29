@@ -14,10 +14,11 @@ interface InvoiceProps {
     rows: TableRow[];
     date: string;
     total: number;
+    recordId?: string;
     onClose: () => void;
 }
 
-export const InvoiceModal = ({ t, rows, date, total, onClose }: InvoiceProps) => {
+export const InvoiceModal = ({ t, rows, date, total, recordId, onClose }: InvoiceProps) => {
     const handlePrint = () => {
         window.print();
     };
@@ -26,9 +27,14 @@ export const InvoiceModal = ({ t, rows, date, total, onClose }: InvoiceProps) =>
     const time = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 
     const invoiceNumber = useMemo(() => {
+        if (recordId) {
+            const clean = recordId.replace(/\D/g, '');
+            const numPart = clean.length >= 6 ? clean.slice(-6) : recordId.slice(-6);
+            return `SI No. ${numPart.padStart(6, '0')}`;
+        }
         const randomSeq = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
         return `SI No. ${randomSeq}`;
-    }, []);
+    }, [recordId]);
 
     return (
         <div id="invoice-modal" className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

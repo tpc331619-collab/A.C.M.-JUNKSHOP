@@ -47,6 +47,10 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
         return Math.round(total);
     }, [rows]);
 
+    const hasData = useMemo(() => {
+        return rows.some(r => r.material.trim() !== '' || (parseFloat(r.weight) > 0 && parseFloat(r.price) > 0));
+    }, [rows]);
+
     const handleClear = () => {
         // Always confirm before clearing
         if (!window.confirm(t.record.clear + '?')) {
@@ -56,6 +60,11 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
     };
 
     const handleSaveAction = async () => {
+        if (!hasData) {
+            alert(t.record.emptyDataError);
+            return;
+        }
+
         if (grandTotal === 0 && !window.confirm("Total is 0. Save anyway?")) return;
 
         // Password check removed by user request
@@ -102,7 +111,8 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
 
         try {
             await onSave(newRecord);
-            setLastSaved(currentDataString);
+            setRows(Array.from({ length: 5 }, () => ({ material: '', weight: '', deduction: '', price: '' })));
+            setLastSaved('');
             // Explicit success alert as requested
             setTimeout(() => alert(t.record.uploadSuccess), 100);
         } catch (error: any) {
@@ -147,7 +157,9 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
                     <button
                         onClick={handleSaveAction}
                         disabled={isSaving}
-                        className={`flex-1 bg-indigo-600 text-white py-3 rounded-xl text-lg font-bold shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`flex-1 bg-indigo-600 text-white py-3 rounded-xl text-lg font-bold shadow-md transition-all flex items-center justify-center gap-2 ${
+                            !hasData || isSaving ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 hover:bg-indigo-700'
+                        }`}
                     >
                         {isSaving ? <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span> : <Save size={20} />}
                         {t.record.save}
@@ -155,10 +167,10 @@ export const RecordView: React.FC<RecordViewProps> = ({ t, onSave, onBack }) => 
 
                     <button
                         onClick={handleClear}
-                        className="bg-gray-100 text-gray-700 w-24 py-3 rounded-xl text-lg font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1 hover:bg-gray-200 border border-gray-300"
+                        className="bg-gray-100 text-gray-700 px-3 py-3 rounded-xl font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5 hover:bg-gray-200 border border-gray-300 shrink-0"
                     >
-                        <Trash2 size={20} />
-                        <span className="text-sm">{t.record.clear}</span>
+                        <Trash2 size={18} />
+                        <span className="text-sm whitespace-nowrap">{t.record.clear}</span>
                     </button>
                     <button
                         onClick={() => setShowInvoice(true)}

@@ -4,7 +4,7 @@ import { TRANSLATIONS } from './constants';
 import { storageService } from './services/storageService';
 import { Language, ViewState, ExpenseRecord } from './types';
 import { User } from 'firebase/auth';
-import { CreditCard, List, Settings, User as UserIcon } from 'lucide-react';
+import { CreditCard, List, Settings, User as UserIcon, Download, Printer } from 'lucide-react';
 
 // Import Views
 import { LoginView } from './components/LoginView';
@@ -84,6 +84,63 @@ export default function App() {
     setView(ViewState.HOME); // Reset view on logout
   };
 
+  // Export all records as CSV directly from home
+  const handleHomeExport = () => {
+    const allRows: { date: string; material: string; weight: number; deduction: number; price: number; result: number }[] = [];
+    records.forEach(record => {
+      if (record.details && record.details.length > 0) {
+        record.details.forEach(d => {
+          allRows.push({ date: record.date, material: d.material, weight: d.weight, deduction: d.deduction, price: d.price, result: d.result });
+        });
+      } else {
+        allRows.push({ date: record.date, material: record.description, weight: 0, deduction: 0, price: 0, result: record.amount });
+      }
+    });
+
+    const headers = [t.view.colDate, t.view.colMaterial, t.view.colWeight, t.view.colDeduction, t.view.colPrice, t.view.colResult];
+    const csvContent = [
+      headers.join(','),
+      ...allRows.map(r => [r.date, `"${r.material}"`, r.weight, r.deduction, r.price, r.result].join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `amc_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Print all records from home
+  const handleHomePrint = () => {
+    const allRows: { date: string; material: string; weight: number; deduction: number; price: number; result: number }[] = [];
+    records.forEach(record => {
+      if (record.details && record.details.length > 0) {
+        record.details.forEach(d => {
+          allRows.push({ date: record.date, material: d.material, weight: d.weight, deduction: d.deduction, price: d.price, result: d.result });
+        });
+      } else {
+        allRows.push({ date: record.date, material: record.description, weight: 0, deduction: 0, price: 0, result: record.amount });
+      }
+    });
+    const total = allRows.reduce((s, r) => s + r.result, 0);
+
+    const rows = allRows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.date}</td><td>${r.material}</td><td>${r.weight}</td><td>${r.deduction}%</td><td>${r.price}</td><td><b>${r.result.toLocaleString()}</b></td></tr>`).join('');
+    const html = `<!DOCTYPE html><html><head><title>AMC Report</title><style>body{font-family:sans-serif;font-size:12px;padding:20px}h1{text-align:center;margin-bottom:4px}p{text-align:center;color:#666;margin-bottom:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:6px;text-align:center}</style></head><body><h1>A.C.M. JUNKSHOP</h1><p>${new Date().toLocaleDateString()} | Total: $${total.toLocaleString()}</p><table><thead><tr><th>#</th><th>${t.view.colDate}</th><th>${t.view.colMaterial}</th><th>${t.view.colWeight}</th><th>${t.view.colDeduction}</th><th>${t.view.colPrice}</th><th>${t.view.colResult}</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      win.print();
+      win.close();
+    }
+  };
+
   // --- RENDER VIEWS ---
 
   if (authLoading) {
@@ -152,6 +209,31 @@ export default function App() {
             color="from-emerald-500 to-teal-600"
             iconColor="text-emerald-50"
           />
+          {/* Export & Print row */}
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={handleHomeExport}
+              disabled={records.length === 0}
+              className="group relative overflow-hidden bg-gradient-to-br from-violet-500 to-purple-600 p-5 rounded-3xl shadow-lg hover:shadow-xl transform transition-all duration-300 active:scale-[0.98] flex flex-col items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-16 h-16 bg-white opacity-10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md text-violet-50">
+                <Download size={22} />
+              </div>
+              <span className="text-xs font-bold text-white tracking-wide">{t.view.exportCSV}</span>
+            </button>
+            <button
+              onClick={handleHomePrint}
+              disabled={records.length === 0}
+              className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-500 p-5 rounded-3xl shadow-lg hover:shadow-xl transform transition-all duration-300 active:scale-[0.98] flex flex-col items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-16 h-16 bg-white opacity-10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-md text-amber-50">
+                <Printer size={22} />
+              </div>
+              <span className="text-xs font-bold text-white tracking-wide">{t.view.printPDF}</span>
+            </button>
+          </div>
           <HomeButton
             icon={<Settings size={32} />}
             label={t.home.settings}
